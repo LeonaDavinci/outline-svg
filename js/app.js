@@ -40,6 +40,7 @@
     autoStroke: 'autoStroke',
     strokeFixed: 'strokeFixed',
     singlePath: 'singlePath',
+    cuspCorner: 'cuspCorner',
     strokeColor: 'strokeColor',
     decimals: 'decimals'
   };
@@ -67,6 +68,7 @@
       autoStroke: chk(P.autoStroke),
       strokeFixed: num(P.strokeFixed),
       singlePath: chk(P.singlePath),
+      cuspCorner: chk(P.cuspCorner),
       color: el(P.strokeColor).value,
       decimals: parseInt(el(P.decimals).value, 10)
     };
@@ -181,7 +183,8 @@
       color: opts.color,
       padding: 4,
       decimals: opts.decimals,
-      singlePath: opts.singlePath
+      singlePath: opts.singlePath,
+      cuspCorner: opts.cuspCorner
     });
     var t3 = performance.now();
 
@@ -190,7 +193,9 @@
     state.selected = new Set();
     el('svgCode').value = out.svg;
     renderPreview(out, strokeW);
-    el('svgCount').textContent = out.pathCount + ' 段';
+    el('svgCount').textContent = out.pathCount === out.subpaths
+      ? out.pathCount + ' 段'
+      : out.pathCount + ' 段 / ' + out.subpaths + ' 子路径';
     el('exportBtn').disabled = false;
 
     drawSkeleton(sk, welded);
@@ -373,6 +378,7 @@
       ['缺口焊接后', welded.stats.afterBridge + ' 条'],
       ['T 型焊接后', welded.stats.afterAttach + ' 条'],
       ['最终路径', out.pathCount + ' 条（简化点 ' + out.points + '）'],
+      ['导出子路径 (M 数)', out.subpaths + (out.subpaths === out.pathCount ? '，与段数一致' : '，多出来的来自尖角断开')],
       ['总长度', (welded.stats.totalLength / Math.max(1, sk.width) * 1).toFixed(0) + ' px（约 ' + (welded.stats.totalLength / sk.width).toFixed(1) + ' W）'],
       ['简化 ε / 描边', eps.toFixed(2) + ' px / ' + strokeW.toFixed(2) + ' px'],
       ['耗时', '二值 ' + sk.timing.bin.toFixed(0) + ' · EDT ' + sk.timing.edt.toFixed(0) +
@@ -487,6 +493,7 @@
     el('throughJunction').checked = true;
     el('facing').checked = true;
     el('singlePath').checked = true;
+    el('cuspCorner').checked = true;
     el('tMode').value = 'snap';
     el('polarity').value = 'auto';
     el('threshold').disabled = false;

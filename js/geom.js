@@ -146,17 +146,16 @@
   };
 
   /**
-   * 把折线按折角切开，返回若干段（用于保留尖角）
+   * 标记哪些顶点是尖角（转角过大）。
    * 方向用 ±span 个点的窗口估计：平滑之后拐角会被摊到好几个顶点上，
    * 只比较相邻两点会漏判，导致直角被抹圆。
+   * @returns Uint8Array，1 = 尖角
    */
-  LineGeom.splitAtCorners = function (pts, cornerCos, span) {
+  LineGeom.cornerFlags = function (pts, cornerCos, span) {
     span = Math.max(1, span || 2);
     var n = pts.length;
-    if (n < 3) return [pts.slice()];
-
-    // 1) 每个顶点的转角余弦
-    var cos = new Float64Array(n).fill(1);
+    var flags = new Uint8Array(n);
+    if (n < 3) return flags;
     for (var i = 1; i < n - 1; i++) {
       var a = pts[Math.max(0, i - span)];
       var b = pts[i];
@@ -165,46 +164,10 @@
       var v2x = c.x - b.x, v2y = c.y - b.y;
       var m1 = Math.sqrt(v1x * v1x + v1y * v1y);
       var m2 = Math.sqrt(v2x * v2x + v2y * v2y);
-      cos[i] = (m1 > 1e-9 && m2 > 1e-9) ? (v1x * v2x + v1y * v2y) / (m1 * m2) : 1;
+      if (!(m1 > 1e-9 && m2 > 1e-9)) continue;
+      if ((v1x * v2x + v1y * v2y) / (m1 * m2) < cornerCos) flags[i] = 1;
     }
-
-    // 2) 非极大抑制：一个拐角只在最尖的那个点切一刀，
-    //    否则平滑后摊开的拐角会被切成好几个 1px 小倒角
-    var cuts = [];
-    var win = span * 2 + 1;
-    for (var k = 1; k < n - 1; k++) {
-      if (cos[k] >= cornerCos) continue;
-      var isPeak = true;
-      for (var j = Math.max(1, k - win); j <= Math.min(n - 2, k + win); j++) {
-        if (cos[j] < cos[k]) { isPeak = false; break; }
-      }
-      if (isPeak) cuts.push(k);
-    }
-
-    if (!cuts.length) return [pts.slice()];
-
-    // 3) 按切点分段，并收掉贴着拐角的过渡点
-    var runs = [];
-    var cur = [pts[0]];
-    var ci = 0;
-    for (var q = 1; q < n - 1; q++) {
-      cur.push(pts[q]);
-      if (ci < cuts.length && q === cuts[ci]) {
-        var p = pts[q];
-        var rad = Math.max(1.2, span * 0.8);
-        while (cur.length > 1 && LineGeom.dist(cur[cur.length - 2], p) < rad) cur.pop();
-        cur[cur.length - 1] = p;
-        runs.push(cur);
-        cur = [p];
-        var skip = q + 1;
-        while (skip < n - 1 && LineGeom.dist(pts[skip], p) < rad) skip++;
-        q = skip - 1;
-        ci++;
-      }
-    }
-    cur.push(pts[n - 1]);
-    runs.push(cur);
-    return runs;
+    return flags;
   };
 
   global.LineGeom = LineGeom;
