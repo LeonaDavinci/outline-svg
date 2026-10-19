@@ -75,6 +75,26 @@ body {
   background: linear-gradient(90deg, var(--line), transparent);
 }
 
+/* 标题右侧的数值徽标 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: #eef5ff;
+  border: 1px solid #d8e8fb;
+  color: var(--brand);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  min-width: 34px;
+  justify-content: center;
+}
+.badge::after { display: none; }
+
 .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
 .row.check label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 label { font-size: 13px; color: var(--ink-2); }

@@ -108,6 +108,7 @@
     el('exportBtn').disabled = true;
     el('svgCode').value = '';
     el('svgPreview').innerHTML = '';
+    el('svgCount').textContent = '—';
     clearCanvas('canvasSkel', '#ffffff');
     clearCanvas('canvasOverlay', '#ffffff');
     setStatus('图像已载入，点击「提取骨架并矢量化」');
@@ -184,6 +185,7 @@
     state.svg = out.svg;
     el('svgCode').value = out.svg;
     el('svgPreview').innerHTML = out.svg;
+    el('svgCount').textContent = out.pathCount + ' 段';
     el('exportBtn').disabled = false;
 
     drawSkeleton(sk, welded);
