@@ -459,23 +459,44 @@
     el('fileInput').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];
       if (!f) return;
+      showFileName(f);
       var img = new Image();
       img.onload = function () { loadImage(img); };
       img.src = URL.createObjectURL(f);
     });
 
-    // 拖放
+    // 拖放：整页可接收，拖入时给出全屏提示
     var dz = document.body;
-    ['dragover', 'drop'].forEach(function (t) {
-      dz.addEventListener(t, function (e) { e.preventDefault(); });
+    var depth = 0;
+    dz.addEventListener('dragenter', function (e) {
+      e.preventDefault();
+      depth++;
+      document.body.classList.add('dragging');
+    });
+    dz.addEventListener('dragover', function (e) { e.preventDefault(); });
+    dz.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      if (--depth <= 0) { depth = 0; document.body.classList.remove('dragging'); }
     });
     dz.addEventListener('drop', function (e) {
+      e.preventDefault();
+      depth = 0;
+      document.body.classList.remove('dragging');
       var f = e.dataTransfer.files && e.dataTransfer.files[0];
       if (!f || !/^image\//.test(f.type)) return;
+      showFileName(f);
       var img = new Image();
       img.onload = function () { loadImage(img); };
       img.src = URL.createObjectURL(f);
     });
+  }
+
+  function showFileName(f) {
+    var box = el('fileName');
+    if (!box) return;
+    var kb = (f.size / 1024).toFixed(f.size < 1024 * 1024 ? 1 : 0);
+    box.textContent = f.name + '  ·  ' + kb + ' KB';
+    box.classList.add('has-file');
   }
 
   function resetParams() {

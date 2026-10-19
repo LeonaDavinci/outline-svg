@@ -4,13 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>线稿矢量化 · 骨架提取 + 线宽自适应焊接</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/favicon-48.png">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="dot"></span>
+    <img class="logo" src="assets/logo.svg" alt="线稿矢量化">
     <h1>线稿矢量化</h1>
   </div>
   <p class="sub">均匀线宽线稿 → 中心线 → 线状 SVG。线宽自动估计，剪枝 / 焊接 / 简化全部按 W 自适应。</p>
@@ -23,11 +27,21 @@
 
     <section class="card">
       <h2>图像</h2>
-      <div class="row">
-        <input type="file" id="fileInput" accept="image/*">
-        <button id="sampleBtn" class="ghost">示例图</button>
+      <div class="row filepick">
+        <label class="filepick-btn" for="fileInput" tabindex="0">
+          <svg viewBox="0 0 24 24" class="ic" aria-hidden="true">
+            <path d="M12 16V4m0 0L8 8m4-4 4 4" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>选择图片</span>
+        </label>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+        <span class="filename" id="fileName">未选择文件</span>
+        <button id="sampleBtn" class="ghost" type="button">用示例图</button>
       </div>
-      <p class="hint" id="imgInfo">可直接把图片拖进页面</p>
+      <p class="hint" id="imgInfo">也可以直接把图片拖到页面任意位置</p>
       <div class="row">
         <button id="runBtn" class="primary" disabled>提取骨架并矢量化</button>
       </div>
