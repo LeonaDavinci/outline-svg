@@ -14,7 +14,8 @@
  *   --smooth=0.9           曲线平滑
  *   --corner=55            尖角判定（度）
  *   --width=0              手动指定线宽，0 = 自动
- *   --color=#111111        描边颜色
+ *   --color=#000000        描边颜色
+ *   --swscale=2            描边宽度倍数（×线宽 W）
  *   --crop                 自动裁剪到内容包围盒
  *   --pad=8                裁剪时四周留白
  *   --stats                打印统计
@@ -46,7 +47,7 @@ function parseArgs(argv) {
   const opt = {
     threshold: 0, prune: 3.4, gap: 2.8, minlen: 3.8, turn: 145,
     eps: 0.06, smooth: 0.9, corner: 55, width: 0, residual: 1.2,
-    color: '#111111', crop: false, pad: 8, stats: false
+    color: '#000000', swscale: 2, crop: false, pad: 8, stats: false
   };
   const pos = [];
   for (const a of argv) {
@@ -94,7 +95,7 @@ function main() {
   const eps = Math.max(0.25, opt.eps * sk.width);
   const out = SvgBuilder.build(welded.paths, {
     w, h, eps, smooth: opt.smooth, cornerDeg: opt.corner,
-    strokeWidth: +sk.width.toFixed(2), color: opt.color,
+    strokeWidth: +(sk.width * opt.swscale).toFixed(2), color: opt.color,
     padding: opt.crop ? 0 : 4, decimals: 2, singlePath: true, cuspCorner: true
   });
 

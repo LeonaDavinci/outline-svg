@@ -19,7 +19,8 @@ const { decodePNG, encodePNG, encodeICO, flattenOnWhite, contentBox } = require(
 const OPT = {
   threshold: 0, prune: 3.4, gap: 2.8, minlen: 3.8, turn: 145,
   eps: 0.06, smooth: 0.9, corner: 55, residual: 1.2,
-  color: [17, 17, 17]
+  color: [0, 0, 0],      // 纯黑
+  swScale: 2.0        // 描边加粗倍数（相对估计线宽 W）
 };
 
 function loadAlgo() {
@@ -143,7 +144,7 @@ function main() {
 
   /* ---- favicon.svg（矢量图标：加粗一点，16px 下更清晰）---- */
   const iconPad = W * 0.18;
-  const svgIcon = makeSvgDoc(paths, box, '#111111', W + W * 0.35, W * 0.12, 1);
+  const svgIcon = makeSvgDoc(paths, box, '#000000', W * OPT.swScale, W * 0.12, 1);
   fs.writeFileSync(path.join(outDir, 'favicon.svg'), svgIcon, 'utf8');
 
   /* ---- PNG 与 ICO ---- */
@@ -154,7 +155,7 @@ function main() {
     const bw = box.w * scale, bh = box.h * scale;
     const ox = (size - bw) / 2, oy = (size - bh) / 2;
     // 小尺寸下按比例缩放会让线细到几乎看不见，这里给一个 1.3px 的下限
-    const radius = Math.max((W + W * 0.35) / 2, 0.65 / scale);   // 原图单位，下限 1.3px
+    const radius = Math.max(W * OPT.swScale / 2, 0.65 / scale);   // 原图单位，下限 1.3px
     const rgba = rasterize(paths, size, {
       ss: size <= 32 ? 6 : 4,
       scale, ox, oy, bx: box.minX, by: box.minY,
@@ -172,7 +173,7 @@ function main() {
   const scale = (P - ip * 2) / Math.max(box.w, box.h);
   const rgba = rasterize(paths, P, {
     ss: 3, scale, ox: (P - box.w * scale) / 2, oy: (P - box.h * scale) / 2,
-    bx: box.minX, by: box.minY, radius: (W + W * 0.35) / 2
+    bx: box.minX, by: box.minY, radius: W * OPT.swScale / 2
   });
   fs.writeFileSync(path.join(outDir, 'logo-preview.png'), encodePNG(P, P, rgba));
   console.log('  logo-preview.png 480×480');
