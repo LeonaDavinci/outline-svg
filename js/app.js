@@ -480,8 +480,8 @@
 
   function resetParams() {
     var defs = {
-      threshold: 128, widthOverride: 0, residual: 1.2, pruneK: 1.2, gapK: 1.0,
-      minLenK: 1.0, maxTurn: 120, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
+      threshold: 128, widthOverride: 2, residual: 1.2, pruneK: 3.4, gapK: 2.8,
+      minLenK: 3.8, maxTurn: 145, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
     };
     Object.keys(defs).forEach(function (k) {
       el(k).value = defs[k];
@@ -491,7 +491,7 @@
     el('autoWidth').checked = true;
     el('autoStroke').checked = true;
     el('throughJunction').checked = true;
-    el('facing').checked = true;
+    el('facing').checked = false;
     el('singlePath').checked = true;
     el('cuspCorner').checked = true;
     el('tMode').value = 'snap';

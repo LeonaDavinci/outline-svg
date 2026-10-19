@@ -64,7 +64,7 @@
         <label><input type="checkbox" id="autoWidth" checked> 自动估计线宽 W</label>
       </div>
       <div class="row">
-        <label for="widthOverride">手动线宽 <b id="widthVal">0</b> px</label>
+        <label for="widthOverride">手动线宽 <b id="widthVal">2.0</b> px</label>
       </div>
       <input type="range" id="widthOverride" min="0.5" max="30" step="0.1" value="2">
       <div class="row">
@@ -77,14 +77,14 @@
     <section class="card">
       <h2>3 · 骨架清洗</h2>
       <div class="row">
-        <label for="pruneK">剪枝长度 <b id="pruneVal">1.2</b> × W <span class="calc" id="pruneHint"></span></label>
+        <label for="pruneK">剪枝长度 <b id="pruneVal">3.4</b> × W <span class="calc" id="pruneHint"></span></label>
       </div>
-      <input type="range" id="pruneK" min="0" max="4" step="0.1" value="1.2">
+      <input type="range" id="pruneK" min="0" max="4" step="0.1" value="3.4">
       <p class="hint">毛刺长度低于该值的末梢直接剪掉，1~1.5 倍线宽最稳。</p>
       <div class="row">
-        <label for="minLenK">清理短线段 <b id="minLenVal">1.0</b> × W <span class="calc" id="minLenHint"></span></label>
+        <label for="minLenK">清理短线段 <b id="minLenVal">3.8</b> × W <span class="calc" id="minLenHint"></span></label>
       </div>
-      <input type="range" id="minLenK" min="0" max="4" step="0.1" value="1.0">
+      <input type="range" id="minLenK" min="0" max="6" step="0.1" value="3.8">
       <p class="hint">合并焊接后，总长度低于该值的碎线段整条丢弃，0 表示不清理。</p>
     </section>
 
@@ -94,13 +94,13 @@
         <label><input type="checkbox" id="throughJunction" checked> 过节点按方向连续性合并</label>
       </div>
       <div class="row">
-        <label for="maxTurn">最大允许拐角 <b id="maxTurnVal">120°</b></label>
+        <label for="maxTurn">最大允许拐角 <b id="maxTurnVal">145°</b></label>
       </div>
-      <input type="range" id="maxTurn" min="10" max="180" step="5" value="120">
+      <input type="range" id="maxTurn" min="10" max="180" step="5" value="145">
       <div class="row">
-        <label for="gapK">焊接间隙 <b id="gapVal">1.0</b> × W <span class="calc" id="gapHint"></span></label>
+        <label for="gapK">焊接间隙 <b id="gapVal">2.8</b> × W <span class="calc" id="gapHint"></span></label>
       </div>
-      <input type="range" id="gapK" min="0" max="3" step="0.1" value="1.0">
+      <input type="range" id="gapK" min="0" max="4" step="0.1" value="2.8">
       <div class="row">
         <label for="tMode">T 型接法</label>
         <select id="tMode">
@@ -110,7 +110,7 @@
         </select>
       </div>
       <div class="row check">
-        <label><input type="checkbox" id="facing" checked> 只焊接朝向一致的端点</label>
+        <label><input type="checkbox" id="facing"> 只焊接朝向一致的端点</label>
       </div>
       <div class="row">
         <button id="runBtn2" class="primary" disabled>提取骨架并矢量化</button>
