@@ -82,6 +82,7 @@
     var f = makeFmt(opts.decimals == null ? 2 : opts.decimals);
     var eps = opts.eps == null ? 0.3 : opts.eps;
     var ds = [];
+    var lengths = [];
     var usedPoints = 0;
 
     for (var i = 0; i < paths.length; i++) {
@@ -99,6 +100,7 @@
       }, f);
       if (!d) continue;
       ds.push(d);
+      lengths.push(Geom.length(pts));
       usedPoints += pts.length;
     }
 
@@ -120,7 +122,15 @@
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb +
       '" width="' + w + '" height="' + h + '" ' + head + '>\n' + body + '\n</svg>';
 
-    return { svg: svg, pathCount: ds.length, d: ds.join(' '), points: usedPoints };
+    return {
+      svg: svg,
+      w: w, h: h, strokeWidth: sw,            // 供预览层重建带颜色的 svg
+      ds: ds,                                  // 每段的 d，供预览层分色/点选
+      lengths: lengths,                        // 每段折线长度
+      pathCount: ds.length,
+      d: ds.join(' '),
+      points: usedPoints
+    };
   };
 
   global.SvgBuilder = SvgBuilder;

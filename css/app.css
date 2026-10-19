@@ -214,6 +214,36 @@ canvas {
   justify-content: center;
 }
 .svg-preview svg { max-width: 100%; height: auto; }
+.svg-empty { color: var(--ink-2); font-size: 13px; }
+
+/* 分段预览：彩色线条 + 透明加粗命中层 */
+.svg-preview .seg {
+  cursor: pointer;
+  transition: opacity .14s ease, stroke-width .14s ease;
+}
+.svg-preview .seg.dim { opacity: .22; }
+.svg-preview .seg.sel {
+  opacity: 1;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, .45));
+}
+.svg-preview .hit {
+  stroke: transparent;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.seg-info {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: #f7fafd;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 9px;
+  min-height: 26px;
+}
+.seg-info b { color: var(--brand); }
 
 #svgCode {
   display: none;

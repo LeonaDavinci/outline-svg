@@ -15,6 +15,7 @@
     w: 0, h: 0,
     scale: 1,
     result: null,
+    selected: new Set(),
     svg: ''
   };
 
@@ -109,6 +110,9 @@
     el('svgCode').value = '';
     el('svgPreview').innerHTML = '';
     el('svgCount').textContent = '—';
+    state.selected = new Set();
+    state.result = null;
+    el('segInfo').textContent = '共 0 段 · 点击线段可选中，Shift 点击多选';
     clearCanvas('canvasSkel', '#ffffff');
     clearCanvas('canvasOverlay', '#ffffff');
     setStatus('图像已载入，点击「提取骨架并矢量化」');
@@ -183,8 +187,9 @@
 
     state.result = { sk: sk, weld: welded, out: out, opts: opts, eps: eps, strokeW: strokeW };
     state.svg = out.svg;
+    state.selected = new Set();
     el('svgCode').value = out.svg;
-    el('svgPreview').innerHTML = out.svg;
+    renderPreview(out, strokeW);
     el('svgCount').textContent = out.pathCount + ' 段';
     el('exportBtn').disabled = false;
 
@@ -193,6 +198,98 @@
 
     renderStats(sk, welded, out, eps, strokeW, t1 - t0, t2 - t1, t3 - t2);
     setStatus('完成，用时 ' + (t3 - t0).toFixed(0) + ' ms');
+  }
+
+  /* ================= 分段着色 + 点选预览 ================= */
+
+  // 高对比、明亮的离散色环，保证相邻段一眼能分开
+  var SEG_COLORS = [
+    '#1666d6', '#e8380d', '#12a150', '#8b5cf6', '#ff8a00',
+    '#0e9bb0', '#d81b60', '#2f7d32', '#c026d3', '#0b7285'
+  ];
+
+  function segColor(i) { return SEG_COLORS[i % SEG_COLORS.length]; }
+
+  /**
+   * 用「每段一个 path + 透明加粗命中层」重建预览，
+   * 命中层比可见线条宽出一圈，手指/鼠标稍微偏一点也能选中。
+   */
+  function renderPreview(out, strokeW) {
+    var host = el('svgPreview');
+    if (!out.ds || !out.ds.length) { host.innerHTML = '<span class="svg-empty">没有可显示的线段</span>'; updateSegInfo(); return; }
+
+    var hitW = Math.max(strokeW + 8, 10);
+    var parts = [];
+    for (var i = 0; i < out.ds.length; i++) {
+      parts.push('<path class="seg" data-i="' + i + '" d="' + out.ds[i] +
+        '" stroke="' + segColor(i) + '" stroke-width="' + strokeW + '"/>');
+    }
+    for (var j = 0; j < out.ds.length; j++) {
+      parts.push('<path class="hit" data-i="' + j + '" d="' + out.ds[j] +
+        '" stroke-width="' + hitW.toFixed(1) + '"/>');
+    }
+
+    var head = 'xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 ' +
+      (out.w + 8) + ' ' + (out.h + 8) + '" width="' + out.w + '" height="' + out.h + '"';
+    host.innerHTML = '<svg ' + head + ' fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<g class="segs">' + parts.slice(0, out.ds.length).join('') + '</g>' +
+      '<g class="hits">' + parts.slice(out.ds.length).join('') + '</g>' +
+      '</svg>';
+    updateSegInfo();
+  }
+
+  function updateSegInfo() {
+    var box = el('segInfo');
+    if (!box) return;
+    var sel = state.selected || new Set();
+    if (!sel.size) {
+      box.textContent = '共 ' + ((state.result && state.result.out.pathCount) || 0) + ' 段 · 点击线段可选中，Shift 点击多选';
+      return;
+    }
+    var lens = (state.result && state.result.out.lengths) || [];
+    var total = 0, idx = [];
+    sel.forEach(function (i) { total += lens[i] || 0; idx.push(i); });
+    idx.sort(function (a, b) { return a - b; });
+    box.innerHTML = '已选 <b>' + idx.length + '</b> 段（#' + idx.map(function (v) { return v + 1; }).join(', #') +
+      '）· 合计 ' + total.toFixed(0) + ' px · 点击空白处取消';
+  }
+
+  function applySelection() {
+    var host = el('svgPreview');
+    var segs = host.querySelectorAll('.seg');
+    var sel = state.selected;
+    var base = (state.result && state.result.strokeW) || 2;
+    for (var i = 0; i < segs.length; i++) {
+      var on = sel.has(i);
+      segs[i].classList.toggle('sel', on);
+      segs[i].classList.toggle('dim', sel.size > 0 && !on);
+      segs[i].setAttribute('stroke-width', on ? +(base * 1.8).toFixed(2) : base);
+    }
+    updateSegInfo();
+  }
+
+  function bindPreviewSelect() {
+    var host = el('svgPreview');
+    host.addEventListener('click', function (e) {
+      if (!state.result) return;
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      var i = t.getAttribute('data-i');
+      if (i === null || i === undefined) {          // 点在空白处
+        if (state.selected.size) { state.selected.clear(); applySelection(); }
+        return;
+      }
+      i = parseInt(i, 10);
+      if (!state.selected) state.selected = new Set();
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        if (state.selected.has(i)) state.selected.delete(i); else state.selected.add(i);
+      } else {
+        var only = state.selected.size === 1 && state.selected.has(i);
+        state.selected.clear();
+        if (!only) state.selected.add(i);
+      }
+      applySelection();
+    });
   }
 
   /* ---------------- 预览绘制 ---------------- */
@@ -345,6 +442,7 @@
     el('runBtn').addEventListener('click', run);
     el('runBtn2').addEventListener('click', run);
     el('exportBtn').addEventListener('click', exportSvg);
+    bindPreviewSelect();
     el('toggleCodeBtn').addEventListener('click', function () {
       var ta = el('svgCode');
       ta.style.display = ta.style.display === 'block' ? 'none' : 'block';
