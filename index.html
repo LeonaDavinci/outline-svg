@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>线稿矢量化 · 骨架提取 + 线宽自适应焊接</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <h1>线稿矢量化</h1>
+  </div>
+  <p class="sub">均匀线宽线稿 → 中心线 → 线状 SVG。线宽自动估计，剪枝 / 焊接 / 简化全部按 W 自适应。</p>
+</header>
+
+<main class="layout">
+
+  <!-- ======================= 左侧参数 ======================= -->
+  <aside class="col-controls">
+
+    <section class="card">
+      <h2>图像</h2>
+      <div class="row">
+        <input type="file" id="fileInput" accept="image/*">
+        <button id="sampleBtn" class="ghost">示例图</button>
+      </div>
+      <p class="hint" id="imgInfo">可直接把图片拖进页面</p>
+      <div class="row">
+        <button id="runBtn" class="primary" disabled>提取骨架并矢量化</button>
+      </div>
+      <div class="row">
+        <button id="exportBtn" class="ghost" disabled>导出 SVG</button>
+        <button id="toggleCodeBtn" class="ghost">SVG 源码</button>
+        <button id="resetBtn" class="ghost">重置参数</button>
+      </div>
+      <p class="status" id="status">等待图像</p>
+    </section>
+
+    <section class="card">
+      <h2>1 · 二值化</h2>
+      <div class="row check">
+        <label><input type="checkbox" id="autoThreshold" checked> 自动阈值（Otsu）</label>
+      </div>
+      <div class="row">
+        <label for="threshold">手动阈值 <b id="thresholdVal">128</b></label>
+      </div>
+      <input type="range" id="threshold" min="0" max="255" step="1" value="128">
+      <div class="row">
+        <label for="polarity">极性</label>
+        <select id="polarity">
+          <option value="auto" selected>自动识别</option>
+          <option value="dark">深色线 / 浅色底</option>
+          <option value="light">浅色线 / 深色底</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2 · 线宽（核心）</h2>
+      <div class="row check">
+        <label><input type="checkbox" id="autoWidth" checked> 自动估计线宽 W</label>
+      </div>
+      <div class="row">
+        <label for="widthOverride">手动线宽 <b id="widthVal">0</b> px</label>
+      </div>
+      <input type="range" id="widthOverride" min="0.5" max="30" step="0.1" value="2">
+      <div class="row">
+        <label for="residual">细化残留带宽 <b id="residualVal">1.2</b> px</label>
+      </div>
+      <input type="range" id="residual" min="0.8" max="3" step="0.1" value="1.2">
+      <p class="hint">残留带越接近 1，中心线越靠中间但更容易断；1.2 是安全值。</p>
+    </section>
+
+    <section class="card">
+      <h2>3 · 骨架清洗</h2>
+      <div class="row">
+        <label for="pruneK">剪枝长度 <b id="pruneVal">1.2</b> × W <span class="calc" id="pruneHint"></span></label>
+      </div>
+      <input type="range" id="pruneK" min="0" max="4" step="0.1" value="1.2">
+      <p class="hint">毛刺长度低于该值的末梢直接剪掉，1~1.5 倍线宽最稳。</p>
+    </section>
+
+    <section class="card">
+      <h2>4 · 合并与焊接</h2>
+      <div class="row check">
+        <label><input type="checkbox" id="throughJunction" checked> 过节点按方向连续性合并</label>
+      </div>
+      <div class="row">
+        <label for="maxTurn">最大允许拐角 <b id="maxTurnVal">45°</b></label>
+      </div>
+      <input type="range" id="maxTurn" min="10" max="90" step="5" value="45">
+      <div class="row">
+        <label for="gapK">焊接间隙 <b id="gapVal">1.0</b> × W <span class="calc" id="gapHint"></span></label>
+      </div>
+      <input type="range" id="gapK" min="0" max="3" step="0.1" value="1.0">
+      <div class="row">
+        <label for="tMode">T 型接法</label>
+        <select id="tMode">
+          <option value="weld" selected>焊接（切分并连续）</option>
+          <option value="snap">吸附（不改动主线）</option>
+          <option value="off">不处理</option>
+        </select>
+      </div>
+      <div class="row check">
+        <label><input type="checkbox" id="facing" checked> 只焊接朝向一致的端点</label>
+      </div>
+      <div class="row">
+        <label for="minLenK">最小保留长度 <b id="minLenVal">1.0</b> × W <span class="calc" id="minLenHint"></span></label>
+      </div>
+      <input type="range" id="minLenK" min="0" max="4" step="0.1" value="1.0">
+    </section>
+
+    <section class="card">
+      <h2>5 · 输出</h2>
+      <div class="row">
+        <label for="epsK">简化精度 <b id="epsVal">0.060</b> × W <span class="calc" id="epsHint"></span></label>
+      </div>
+      <input type="range" id="epsK" min="0.01" max="0.3" step="0.005" value="0.06">
+      <div class="row">
+        <label for="smooth">曲线平滑 <b id="smoothVal">0.90</b></label>
+      </div>
+      <input type="range" id="smooth" min="0" max="1.5" step="0.05" value="0.9">
+      <div class="row">
+        <label for="cornerDeg">尖角判定 <b id="cornerVal">55°</b></label>
+      </div>
+      <input type="range" id="cornerDeg" min="15" max="120" step="5" value="55">
+      <div class="row check">
+        <label><input type="checkbox" id="autoStroke" checked> 描边宽度 = 估计线宽</label>
+      </div>
+      <div class="row">
+        <label for="strokeFixed">手动描边 <b id="strokeVal">2.0</b> px</label>
+      </div>
+      <input type="range" id="strokeFixed" min="0.2" max="30" step="0.1" value="2">
+      <div class="row">
+        <label for="strokeColor">颜色</label>
+        <input type="color" id="strokeColor" value="#111111">
+        <label for="decimals" class="inline">精度</label>
+        <select id="decimals">
+          <option value="1">1 位</option>
+          <option value="2" selected>2 位</option>
+          <option value="3">3 位</option>
+        </select>
+      </div>
+      <div class="row check">
+        <label><input type="checkbox" id="singlePath" checked> 合并为单条 path</label>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- ======================= 右侧预览 ======================= -->
+  <section class="col-stage">
+
+    <div class="card">
+      <h2>统计</h2>
+      <table class="stats" id="stats"><tr><th>状态</th><td>等待运行</td></tr></table>
+    </div>
+
+    <div class="card">
+      <h2>预览</h2>
+      <div class="grid3">
+        <figure>
+          <figcaption>原图</figcaption>
+          <canvas id="canvasSrc"></canvas>
+        </figure>
+        <figure>
+          <figcaption>骨架 + 焊接端点</figcaption>
+          <canvas id="canvasSkel"></canvas>
+        </figure>
+        <figure>
+          <figcaption>矢量叠加（红线 = 输出）</figcaption>
+          <canvas id="canvasOverlay"></canvas>
+        </figure>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>SVG</h2>
+      <div id="svgPreview" class="svg-preview"></div>
+      <textarea id="svgCode" spellcheck="false"></textarea>
+    </div>
+
+    <div class="card notes">
+      <h2>算法说明</h2>
+      <ol>
+        <li><b>二值化</b>：Otsu 自动阈值 + 极性自检，深底白线也能自动反转。</li>
+        <li><b>线宽估计</b>：精确欧氏距离变换后取脊线（局部极大），统计 <code>2·dt</code> 的众数得到 W，
+            并给出 p10–p90 判断线宽是否真的均匀。</li>
+        <li><b>中心线</b>：用 W 反推腐蚀量 <code>t = (W − 残留)/2</code>，只在 <code>dt ≥ t</code> 处取种子，
+            再沿 EDT 脊线滞后生长，最后 Zhang-Suen 细化到 1px。种子来自距离场，所以中心线天然居中，
+            不会像直接细化原掩膜那样被笔画内部的锯齿带偏。</li>
+        <li><b>拓扑追踪</b>：区分端点节点与交叉节点（8 连通聚簇取质心），沿 deg=2 链走边，
+            得到「节点—边」图，交叉处不再断线。</li>
+        <li><b>合并焊接</b>：度 2 节点直接并；度 ≥3 节点按方向连续性配对并成直线；
+            悬空端点间隙 ≤ k·W 且相互朝向时焊接；T 型按连续性切分焊接。</li>
+        <li><b>输出</b>：Douglas-Peucker（ε 按 W 自适应）→ 尖角检测断开 → 平缓段 Catmull-Rom 转贝塞尔，
+            描边宽度默认等于 W，输出图形与输入线稿等宽。</li>
+      </ol>
+    </div>
+
+  </section>
+</main>
+
+<script src="js/geom.js"></script>
+<script src="js/skeleton.js"></script>
+<script src="js/merge.js"></script>
+<script src="js/svg.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
