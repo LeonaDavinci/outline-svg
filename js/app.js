@@ -377,7 +377,7 @@
   function resetParams() {
     var defs = {
       threshold: 128, widthOverride: 0, residual: 1.2, pruneK: 1.2, gapK: 1.0,
-      minLenK: 1.0, maxTurn: 90, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
+      minLenK: 1.0, maxTurn: 120, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
     };
     Object.keys(defs).forEach(function (k) {
       el(k).value = defs[k];
