@@ -16,6 +16,9 @@
     scale: 1,
     result: null,
     selected: new Set(),
+    segments: [],
+    removed: new Set(),
+    undoStack: [],
     svg: ''
   };
 
@@ -113,8 +116,14 @@
     el('svgPreview').innerHTML = '';
     el('svgCount').textContent = '—';
     state.selected = new Set();
+    state.segments = [];
+    state.removed = new Set();
+    state.undoStack = [];
     state.result = null;
-    el('segInfo').textContent = '共 0 段 · 点击线段可选中，Shift 点击多选';
+    el('segInfo').textContent = '共 0 段 · 拖拽可框选，Ctrl+拖拽追加多选';
+    el('delBtn').disabled = true;
+    el('undoBtn').disabled = true;
+    el('clearSelBtn').disabled = true;
     clearCanvas('canvasSkel', '#ffffff');
     clearCanvas('canvasOverlay', '#ffffff');
     setStatus('图像已载入，点击「提取骨架并矢量化」');
@@ -188,9 +197,18 @@
     });
     var t3 = performance.now();
 
-    state.result = { sk: sk, weld: welded, out: out, opts: opts, eps: eps, strokeW: strokeW };
+    state.result = {
+      sk: sk, weld: welded, out: out, opts: opts, eps: eps, strokeW: strokeW,
+      svgOpts: {
+        w: sk.w, h: sk.h, eps: eps, smooth: opts.smooth, cornerDeg: opts.cornerDeg,
+        strokeWidth: +strokeW.toFixed(2), color: opts.color, padding: 4,
+        decimals: opts.decimals, singlePath: opts.singlePath, cuspCorner: opts.cuspCorner
+      }
+    };
     state.svg = out.svg;
     state.selected = new Set();
+    state.removed = new Set();
+    state.undoStack = [];
     el('svgCode').value = out.svg;
     renderPreview(out, strokeW);
     el('svgCount').textContent = out.pathCount === out.subpaths
@@ -221,42 +239,69 @@
    */
   function renderPreview(out, strokeW) {
     var host = el('svgPreview');
-    if (!out.ds || !out.ds.length) { host.innerHTML = '<span class="svg-empty">没有可显示的线段</span>'; updateSegInfo(); return; }
-
-    var hitW = Math.max(strokeW + 8, 10);
-    var parts = [];
+    // 记录每段的点列，供框选做命中测试
+    state.segments = [];
     for (var i = 0; i < out.ds.length; i++) {
-      parts.push('<path class="seg" data-i="' + i + '" d="' + out.ds[i] +
-        '" stroke="' + segColor(i) + '" stroke-width="' + strokeW + '"/>');
+      state.segments.push({
+        i: i, d: out.ds[i],
+        pts: (out.polys && out.polys[i]) || [],
+        len: (out.lengths && out.lengths[i]) || 0
+      });
     }
-    for (var j = 0; j < out.ds.length; j++) {
-      parts.push('<path class="hit" data-i="' + j + '" d="' + out.ds[j] +
+    paintPreview();
+  }
+
+  function paintPreview() {
+    var host = el('svgPreview');
+    var segs = state.segments || [];
+    if (!segs.length) {
+      host.innerHTML = '<span class="svg-empty">' +
+        (state.removed && state.removed.size ? '所有线段已删除，点「撤销」可恢复' : '没有可显示的线段') +
+        '</span>';
+      updateSegInfo();
+      return;
+    }
+    var base = (state.result && state.result.strokeW) || 2;
+    var hitW = Math.max(base + 8, 10);
+    var parts = [], hits = [];
+    for (var i = 0; i < segs.length; i++) {
+      var s = segs[i];
+      parts.push('<path class="seg" data-i="' + s.i + '" d="' + s.d +
+        '" stroke="' + segColor(s.i) + '" stroke-width="' + base + '"/>');
+      hits.push('<path class="hit" data-i="' + s.i + '" d="' + s.d +
         '" stroke-width="' + hitW.toFixed(1) + '"/>');
     }
-
-    var head = 'xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 ' +
-      (out.w + 8) + ' ' + (out.h + 8) + '" width="' + out.w + '" height="' + out.h + '"';
-    host.innerHTML = '<svg ' + head + ' fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-      '<g class="segs">' + parts.slice(0, out.ds.length).join('') + '</g>' +
-      '<g class="hits">' + parts.slice(out.ds.length).join('') + '</g>' +
-      '</svg>';
-    updateSegInfo();
+    var first = segs[0];
+    var vb = (state.result && state.result.out) ? state.result.out : null;
+    var w = vb ? vb.w : 100, h = vb ? vb.h : 100;
+    host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 ' +
+      (w + 8) + ' ' + (h + 8) + '" width="' + w + '" height="' + h +
+      '" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<g class="segs">' + parts.join('') + '</g>' +
+      '<g class="hits">' + hits.join('') + '</g></svg>';
+    applySelection();
   }
 
   function updateSegInfo() {
     var box = el('segInfo');
     if (!box) return;
     var sel = state.selected || new Set();
+    var total = (state.segments || []).length;
+    var removed = state.removed ? state.removed.size : 0;
+    var head = '当前 ' + total + ' 段' + (removed ? '（已删 ' + removed + '）' : '');
     if (!sel.size) {
-      box.textContent = '共 ' + ((state.result && state.result.out.pathCount) || 0) + ' 段 · 点击线段可选中，Shift 点击多选';
+      box.textContent = head + ' · 拖拽可框选，Ctrl+拖拽追加多选';
       return;
     }
-    var lens = (state.result && state.result.out.lengths) || [];
-    var total = 0, idx = [];
-    sel.forEach(function (i) { total += lens[i] || 0; idx.push(i); });
+    var totalLen = 0, idx = [];
+    sel.forEach(function (i) {
+      var seg = (state.segments || []).filter(function (s) { return s.i === i; })[0];
+      totalLen += seg ? seg.len : 0;
+      idx.push(i);
+    });
     idx.sort(function (a, b) { return a - b; });
-    box.innerHTML = '已选 <b>' + idx.length + '</b> 段（#' + idx.map(function (v) { return v + 1; }).join(', #') +
-      '）· 合计 ' + total.toFixed(0) + ' px · 点击空白处取消';
+    box.innerHTML = head + ' · 已选 <b>' + idx.length + '</b> 段（#' +
+      idx.map(function (v) { return v + 1; }).join(', #') + '）· 合计 ' + totalLen.toFixed(0) + ' px';
   }
 
   function applySelection() {
@@ -265,17 +310,67 @@
     var sel = state.selected;
     var base = (state.result && state.result.strokeW) || 2;
     for (var i = 0; i < segs.length; i++) {
-      var on = sel.has(i);
+      var on = sel.has(parseInt(segs[i].getAttribute('data-i'), 10));
       segs[i].classList.toggle('sel', on);
       segs[i].classList.toggle('dim', sel.size > 0 && !on);
       segs[i].setAttribute('stroke-width', on ? +(base * 1.8).toFixed(2) : base);
     }
+    el('delBtn').disabled = sel.size === 0;
+    el('clearSelBtn').disabled = sel.size === 0;
+    el('undoBtn').disabled = !state.undoStack || state.undoStack.length === 0;
     updateSegInfo();
+  }
+
+  /* ---------------- 删除 / 撤销 ---------------- */
+  function rebuildAfterEdit() {
+    var r = state.result;
+    if (!r) return;
+    var removed = state.removed;
+    var kept = [];
+    for (var i = 0; i < r.weld.paths.length; i++) if (!removed.has(i)) kept.push(r.weld.paths[i]);
+    var out = SvgBuilder.build(kept, r.svgOpts);
+    r.out = out;
+    state.svg = out.svg;
+    el('svgCode').value = out.svg;
+    el('svgCount').textContent = out.pathCount === out.subpaths
+      ? out.pathCount + ' 段'
+      : out.pathCount + ' 段 / ' + out.subpaths + ' 子路径';
+    renderPreview(out, r.strokeW);
+  }
+
+  function deleteSelected() {
+    var sel = state.selected;
+    if (!sel || !sel.size || !state.result) return;
+    var batch = Array.from(sel).sort(function (a, b) { return a - b; });
+    if (!state.removed) state.removed = new Set();
+    if (!state.undoStack) state.undoStack = [];
+    state.undoStack.push(batch);
+    batch.forEach(function (i) { state.removed.add(i); });
+    state.selected = new Set();
+    rebuildAfterEdit();
+  }
+
+  function undoDelete() {
+    var stack = state.undoStack;
+    if (!stack || !stack.length || !state.result) return;
+    var batch = stack.pop();
+    batch.forEach(function (i) { state.removed.delete(i); });
+    state.selected = new Set();
+    rebuildAfterEdit();
+  }
+
+  function selectAll() {
+    state.selected = new Set((state.segments || []).map(function (s) { return s.i; }));
+    applySelection();
   }
 
   function bindPreviewSelect() {
     var host = el('svgPreview');
+    var dragged = false;      // 框选结束后紧随的那次 click 要忽略，否则单段会被误选
+
+    /* --- 单击 / Shift 点击 --- */
     host.addEventListener('click', function (e) {
+      if (dragged) { dragged = false; return; }
       if (!state.result) return;
       var t = e.target;
       if (!t || !t.getAttribute) return;
@@ -295,6 +390,78 @@
       }
       applySelection();
     });
+
+    /* --- 框选：拖拽画框，Ctrl 追加 --- */
+    var drag = null;
+    host.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || !state.result) return;
+      var r = host.getBoundingClientRect();
+      drag = { x0: e.clientX - r.left, y0: e.clientY - r.top, box: r, moved: false, add: !!(e.ctrlKey || e.metaKey || e.shiftKey) };
+    });
+    host.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var x = e.clientX - drag.box.left, y = e.clientY - drag.box.top;
+      if (!drag.moved && Math.abs(x - drag.x0) + Math.abs(y - drag.y0) < 5) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        drag.el = document.createElement('div');
+        drag.el.className = 'rubber';
+        host.appendChild(drag.el);
+        host.setPointerCapture && host.setPointerCapture(e.pointerId);
+      }
+      var l = Math.min(drag.x0, x), t = Math.min(drag.y0, y);
+      drag.el.style.left = l + 'px';
+      drag.el.style.top = t + 'px';
+      drag.el.style.width = Math.abs(x - drag.x0) + 'px';
+      drag.el.style.height = Math.abs(y - drag.y0) + 'px';
+    });
+    function endDrag(e) {
+      if (!drag) return;
+      var d = drag; drag = null;
+      if (!d.moved) return;
+      dragged = true;
+      var x = e.clientX - d.box.left, y = e.clientY - d.box.top;
+      if (d.el) d.el.remove();
+      var rect = {
+        x0: Math.min(d.x0, x), y0: Math.min(d.y0, y),
+        x1: Math.max(d.x0, x), y1: Math.max(d.y0, y)
+      };
+      var hit = hitTest(rect);
+      if (!d.add) state.selected = new Set();
+      hit.forEach(function (i) { state.selected.add(i); });
+      applySelection();
+    }
+    host.addEventListener('pointerup', endDrag);
+    host.addEventListener('pointercancel', function () {
+      if (drag && drag.el) drag.el.remove();
+      drag = null;
+    });
+  }
+
+  /** 屏幕矩形 → SVG 坐标矩形，返回命中的线段下标 */
+  function hitTest(rect) {
+    var out = [];
+    var svg = el('svgPreview').querySelector('svg');
+    if (!svg) return out;
+    var r = svg.getBoundingClientRect();
+    var host = el('svgPreview').getBoundingClientRect();
+    var vb = (svg.getAttribute('viewBox') || '0 0 100 100').split(/\s+/).map(Number);
+    var sx = vb[2] / r.width, sy = vb[3] / r.height;
+    var pad = 3;                                   // 放宽一点，手抖也能选到
+    var X0 = (rect.x0 - (r.left - host.left)) * sx + vb[0] - pad;
+    var X1 = (rect.x1 - (r.left - host.left)) * sx + vb[0] + pad;
+    var Y0 = (rect.y0 - (r.top - host.top)) * sy + vb[1] - pad;
+    var Y1 = (rect.y1 - (r.top - host.top)) * sy + vb[1] + pad;
+    (state.segments || []).forEach(function (s) {
+      var pts = s.pts;
+      if (!pts.length) return;
+      var stride = Math.max(1, Math.floor(pts.length / 120));
+      for (var k = 0; k < pts.length; k += stride) {
+        var p = pts[k];
+        if (p.x >= X0 && p.x <= X1 && p.y >= Y0 && p.y <= Y1) { out.push(s.i); return; }
+      }
+    });
+    return out;
   }
 
   /* ---------------- 预览绘制 ---------------- */
@@ -448,7 +615,29 @@
     el('runBtn').addEventListener('click', run);
     el('runBtn2').addEventListener('click', run);
     el('exportBtn').addEventListener('click', exportSvg);
+    el('delBtn').addEventListener('click', deleteSelected);
+    el('undoBtn').addEventListener('click', undoDelete);
+    el('selectAllBtn').addEventListener('click', selectAll);
+    el('clearSelBtn').addEventListener('click', function () {
+      state.selected.clear();
+      applySelection();
+    });
     bindPreviewSelect();
+
+    // 快捷键：Delete/Backspace 删除，Ctrl+Z 撤销
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selected && state.selected.size) { e.preventDefault(); deleteSelected(); }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        undoDelete();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        selectAll();
+      }
+    });
     el('toggleCodeBtn').addEventListener('click', function () {
       var ta = el('svgCode');
       ta.style.display = ta.style.display === 'block' ? 'none' : 'block';

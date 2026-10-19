@@ -91,6 +91,7 @@
     var eps = opts.eps == null ? 0.3 : opts.eps;
     var ds = [];
     var lengths = [];
+    var polys = [];   // 每段简化后的折线，供预览层做框选命中测试
     var usedPoints = 0;
 
     for (var i = 0; i < paths.length; i++) {
@@ -109,6 +110,7 @@
       }, f);
       if (!d) continue;
       ds.push(d);
+      polys.push(pts);
       lengths.push(Geom.length(pts));
       usedPoints += pts.length;
     }
@@ -139,6 +141,7 @@
       w: w, h: h, strokeWidth: sw,            // 供预览层重建带颜色的 svg
       ds: ds,                                  // 每段的 d，供预览层分色/点选
       lengths: lengths,                        // 每段折线长度
+      polys: polys,                            // 每段折线点列（框选用）
       pathCount: ds.length,
       subpaths: subs,                          // d 里的 M 数 = 外部工具看到的子路径数
       d: ds.join(' '),
