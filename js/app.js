@@ -104,6 +104,7 @@
       (scale < 1 ? '（已缩放到 ' + cw + '×' + ch + ' 处理）' : '');
 
     el('runBtn').disabled = false;
+    el('runBtn2').disabled = false;
     el('exportBtn').disabled = true;
     el('svgCode').value = '';
     el('svgPreview').innerHTML = '';
@@ -120,11 +121,16 @@
 
   function setStatus(s) { el('status').textContent = s; }
 
+  function setRunEnabled(on) {
+    el('runBtn').disabled = !on;
+    el('runBtn2').disabled = !on;
+  }
+
   /* ---------------- 主流程 ---------------- */
   function run() {
     if (!state.workData) return;
     setStatus('计算中…');
-    el('runBtn').disabled = true;
+    setRunEnabled(false);
 
     // 让浏览器先把状态刷出来再跑重活
     setTimeout(function () {
@@ -134,7 +140,7 @@
         console.error(err);
         setStatus('出错：' + err.message);
       } finally {
-        el('runBtn').disabled = false;
+        setRunEnabled(true);
       }
     }, 16);
   }
@@ -335,6 +341,7 @@
     el('strokeFixed').disabled = el('autoStroke').checked;
 
     el('runBtn').addEventListener('click', run);
+    el('runBtn2').addEventListener('click', run);
     el('exportBtn').addEventListener('click', exportSvg);
     el('toggleCodeBtn').addEventListener('click', function () {
       var ta = el('svgCode');
@@ -368,21 +375,21 @@
   function resetParams() {
     var defs = {
       threshold: 128, widthOverride: 0, residual: 1.2, pruneK: 1.2, gapK: 1.0,
-      minLenK: 1.0, maxTurn: 45, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
+      minLenK: 1.0, maxTurn: 90, epsK: 0.06, smooth: 0.9, cornerDeg: 55, strokeFixed: 2
     };
     Object.keys(defs).forEach(function (k) {
       el(k).value = defs[k];
       el(k).dispatchEvent(new Event('input'));
     });
-    el('autoThreshold').checked = true;
+    el('autoThreshold').checked = false;
     el('autoWidth').checked = true;
     el('autoStroke').checked = true;
     el('throughJunction').checked = true;
     el('facing').checked = true;
     el('singlePath').checked = true;
-    el('tMode').value = 'weld';
+    el('tMode').value = 'snap';
     el('polarity').value = 'auto';
-    el('threshold').disabled = true;
+    el('threshold').disabled = false;
     el('widthOverride').disabled = true;
     el('strokeFixed').disabled = true;
     refreshHints.forEach(function (fn) { fn(); });
