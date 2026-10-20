@@ -537,7 +537,6 @@
     var ws = sk.widthStats;
     // 左卡：输入分析（这张图被看成了什么）
     var left = [
-      ['二值化阈值', sk.threshold.toFixed(0) + (sk.threshold === sk.autoThreshold ? '（Otsu 自动）' : '（手动）') + (sk.inverted ? '，已反相' : '')],
       ['估计线宽 W', ws.width.toFixed(2) + ' px' + (sk.widthAuto ? '（自动）' : '（手动）')],
       ['线宽分布 p10–p90', ws.p10.toFixed(2) + ' – ' + ws.p90.toFixed(2) + ' px' + (ws.uniform ? '，均匀' : '，<b>不均匀</b>')],
       ['骨架像素', sk.centerCount + ' px'],
