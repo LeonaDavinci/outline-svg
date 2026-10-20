@@ -643,7 +643,8 @@
       ta.style.display = ta.style.display === 'block' ? 'none' : 'block';
     });
     el('resetBtn').addEventListener('click', resetParams);
-    el('sampleBtn').addEventListener('click', loadSample);
+    el('sampleBtn').addEventListener('click', loadSampleImage);
+    el('testImgBtn').addEventListener('click', loadTestImage);
 
     el('fileInput').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];
@@ -728,7 +729,23 @@
   }
 
   /* ---------------- 内置示例图 ---------------- */
-  function loadSample() {
+  // 默认输入：assets/sample.png（单线玫瑰线稿，750×500）
+  function loadSampleImage() {
+    var img = new Image();
+    img.onload = function () {
+      loadImage(img);
+      markBuiltin('示例线稿 · 750×500');
+      setStatus('示例线稿已载入，点击「提取骨架并矢量化」');
+    };
+    img.onerror = function () {
+      setStatus('内置示例图加载失败，请手动选择图片');
+      loadTestImage();
+    };
+    img.src = 'assets/sample.png';
+  }
+
+  // 合成测试图：均匀线宽 5px，用于验证线宽估计 / 缺口焊接 / 拐角保持
+  function loadTestImage() {
     var W = 520, H = 360;
     var c = document.createElement('canvas');
     c.width = W; c.height = H;
@@ -762,13 +779,25 @@
     L(478, 306, 500, 322);
 
     var img = new Image();
-    img.onload = function () { loadImage(img); setStatus('示例图已载入（线宽 5px），点击运行'); };
+    img.onload = function () {
+      loadImage(img);
+      markBuiltin('合成测试图 · 520×360（线宽 5px）');
+      setStatus('测试图已载入（线宽 5px），点击运行');
+    };
     img.src = c.toDataURL('image/png');
+  }
+
+  // 内置图不来自文件选择，单独刷新文件名区域的显示
+  function markBuiltin(label) {
+    var box = el('fileName');
+    if (!box) return;
+    box.textContent = label;
+    box.classList.add('has-file');
   }
 
   /* ---------------- 启动 ---------------- */
   document.addEventListener('DOMContentLoaded', function () {
     initUI();
-    loadSample();
+    loadSampleImage();
   });
 })();

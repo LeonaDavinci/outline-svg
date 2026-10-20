@@ -61,7 +61,7 @@ body.dragging::after {
 }
 
 /* 文件选择按钮 */
-.filepick { gap: 10px; }
+.filepick { gap: 10px; flex-wrap: wrap; }
 .filepick-btn {
   display: inline-flex;
   align-items: center;
@@ -88,7 +88,7 @@ body.dragging::after {
 .filepick-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 .filename {
-  flex: 1;
+  flex: 1 1 110px;
   min-width: 0;
   font-size: 12.5px;
   color: var(--ink-2);
