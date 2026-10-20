@@ -210,6 +210,11 @@ button.primary {
 button.primary:hover:not(:disabled) { background: var(--brand-2); border-color: var(--brand-2); }
 button.ghost { background: #f7fafd; }
 
+/* 合并后的动作按钮行：等宽并排，省高度 */
+.row.actions { gap: 8px; margin: 10px 0 2px; }
+.row.actions > button { flex: 1 1 0; min-width: 0; }
+.svg-actions { margin-top: 10px; }
+
 .hint { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; line-height: 1.5; }
 .calc { color: var(--brand); font-size: 12px; font-variant-numeric: tabular-nums; }
 .status {
