@@ -40,9 +40,8 @@
         <input type="file" id="fileInput" accept="image/*" hidden>
         <span class="filename" id="fileName">未选择文件</span>
         <button id="sampleBtn" class="ghost" type="button" title="加载内置的单线玫瑰线稿">示例线稿</button>
-        <button id="testImgBtn" class="ghost" type="button" title="加载程序生成的均匀线宽测试图（线宽 5px）">测试图</button>
       </div>
-      <p class="hint" id="imgInfo">也可以直接把图片拖到页面任意位置</p>
+      <p class="hint">也可以直接把图片拖到页面任意位置</p>
       <div class="row actions">
         <button id="runBtn" class="primary" disabled>提取骨架并矢量化</button>
         <button id="resetBtn" class="ghost">重置参数</button>
@@ -59,14 +58,6 @@
         <label for="threshold">手动阈值 <b id="thresholdVal">128</b></label>
       </div>
       <input type="range" id="threshold" min="0" max="255" step="1" value="128">
-      <div class="row">
-        <label for="polarity">极性</label>
-        <select id="polarity">
-          <option value="auto" selected>自动识别</option>
-          <option value="dark">深色线 / 浅色底</option>
-          <option value="light">浅色线 / 深色底</option>
-        </select>
-      </div>
     </section>
 
     <section class="card">
@@ -79,24 +70,33 @@
       </div>
       <input type="range" id="widthOverride" min="0.5" max="30" step="0.1" value="2">
       <div class="row">
-        <label for="residual">细化残留带宽 <b id="residualVal">1.2</b> px</label>
+        <label for="residual">细化残留带宽 <b id="residualVal">1.2</b> px
+          <span class="help" tabindex="0" role="note" aria-label="说明">?
+            <span class="bubble">残留带越接近 1，中心线越靠中间但更容易断；1.2 是安全值。</span>
+          </span>
+        </label>
       </div>
       <input type="range" id="residual" min="0.8" max="3" step="0.1" value="1.2">
-      <p class="hint">残留带越接近 1，中心线越靠中间但更容易断；1.2 是安全值。</p>
     </section>
 
     <section class="card">
       <h2>3 · 骨架清洗</h2>
       <div class="row">
-        <label for="pruneK">剪枝长度 <b id="pruneVal">3.4</b> × W <span class="calc" id="pruneHint"></span></label>
+        <label for="pruneK">剪枝长度 <b id="pruneVal">3.4</b> × W <span class="calc" id="pruneHint"></span>
+          <span class="help" tabindex="0" role="note" aria-label="说明">i
+            <span class="bubble">毛刺长度低于该值的末梢直接剪掉，1~1.5 倍线宽最稳。</span>
+          </span>
+        </label>
       </div>
       <input type="range" id="pruneK" min="0" max="4" step="0.1" value="3.4">
-      <p class="hint">毛刺长度低于该值的末梢直接剪掉，1~1.5 倍线宽最稳。</p>
       <div class="row">
-        <label for="minLenK">清理短线段 <b id="minLenVal">3.8</b> × W <span class="calc" id="minLenHint"></span></label>
+        <label for="minLenK">清理短线段 <b id="minLenVal">3.8</b> × W <span class="calc" id="minLenHint"></span>
+          <span class="help" tabindex="0" role="note" aria-label="说明">i
+            <span class="bubble">合并焊接后，总长度低于该值的碎线段整条丢弃，0 表示不清理。</span>
+          </span>
+        </label>
       </div>
       <input type="range" id="minLenK" min="0" max="6" step="0.1" value="3.8">
-      <p class="hint">合并焊接后，总长度低于该值的碎线段整条丢弃，0 表示不清理。</p>
     </section>
 
     <section class="card">
@@ -207,7 +207,11 @@
       <h2>预览</h2>
       <div class="grid3">
         <figure>
-          <figcaption>原图</figcaption>
+          <figcaption>原图
+            <span class="help help-end" tabindex="0" role="note" aria-label="图像信息">i
+              <span class="bubble" id="imgInfo"></span>
+            </span>
+          </figcaption>
           <canvas id="canvasSrc"></canvas>
         </figure>
         <figure>

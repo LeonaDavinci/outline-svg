@@ -26,7 +26,6 @@
   var P = {
     autoThreshold: 'autoThreshold',
     threshold: 'threshold',
-    polarity: 'polarity',
     autoWidth: 'autoWidth',
     widthOverride: 'widthOverride',
     residual: 'residual',
@@ -54,7 +53,7 @@
   function readOpts() {
     return {
       threshold: chk(P.autoThreshold) ? 0 : Math.round(num(P.threshold)),
-      polarity: el(P.polarity).value,
+      polarity: 'auto',
       minComponentArea: 4,
       widthOverride: chk(P.autoWidth) ? 0 : num(P.widthOverride),
       residual: num(P.residual),
@@ -697,7 +696,6 @@
     bindCollapse('statsOutBody', 'toggleOut', 'ctLabelOut');
     el('resetBtn').addEventListener('click', resetParams);
     el('sampleBtn').addEventListener('click', loadSampleImage);
-    el('testImgBtn').addEventListener('click', loadTestImage);
 
     el('fileInput').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];
@@ -759,7 +757,6 @@
     el('singlePath').checked = true;
     el('cuspCorner').checked = true;
     el('tMode').value = 'snap';
-    el('polarity').value = 'auto';
     el('threshold').disabled = false;
     el('widthOverride').disabled = true;
     el('strokeFixed').disabled = true;

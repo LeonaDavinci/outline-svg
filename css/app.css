@@ -216,6 +216,61 @@ button.ghost { background: #f7fafd; }
 .svg-actions { margin-top: 10px; }
 
 .hint { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; line-height: 1.5; }
+
+/* 悬停提示：i 图标 + 气泡 */
+.help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 15px; height: 15px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: 1px solid #cfe0f5;
+  background: #eef5ff;
+  color: var(--brand);
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  flex: 0 0 auto;
+}
+.help .bubble {
+  position: absolute;
+  left: 0; right: auto;
+  top: calc(100% + 7px);
+  z-index: 30;
+  width: 230px;
+  max-width: 72vw;
+  padding: 8px 10px;
+  background: #16202c;
+  color: #fff;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px -8px rgba(16, 32, 56, .55);
+  display: none;
+  white-space: normal;
+}
+.help .bubble::before {
+  content: "";
+  position: absolute;
+  left: 10px; top: -5px;
+  border: 5px solid transparent;
+  border-bottom-color: #16202c;
+  border-top: 0;
+}
+.help.help-end .bubble { left: auto; right: 0; }
+.help.help-end .bubble::before { left: auto; right: 10px; }
+.help:hover .bubble,
+.help:focus .bubble,
+.help:focus-visible .bubble { display: block; }
+.help:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .calc { color: var(--brand); font-size: 12px; font-variant-numeric: tabular-nums; }
 .status {
   margin: 10px 0 0;
@@ -299,6 +354,9 @@ table.stats b { color: var(--accent); }
 }
 figure { margin: 0; }
 figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   color: var(--ink-2);
   margin-bottom: 5px;
