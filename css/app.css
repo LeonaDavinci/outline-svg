@@ -233,6 +233,37 @@ button.ghost { background: #f7fafd; }
   .stats-split { grid-template-columns: 1fr; }
 }
 
+/* 统计卡折叠：默认只露前一半行，点胶囊按钮展开 */
+.collapse-toggle {
+  order: 3;                       /* 排在 h2::after 的渐变分隔线之后，落在最右 */
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fbfdff;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: .16s ease;
+}
+.collapse-toggle:hover {
+  border-color: var(--brand);
+  color: var(--brand-2);
+  background: #f2f7fe;
+}
+.collapse-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.collapse-toggle .ct-chev { width: 13px; height: 13px; transition: transform .2s ease; }
+.collapse-toggle[aria-expanded="true"] .ct-chev { transform: rotate(180deg); }
+
+.stats-body { overflow: hidden; transition: max-height .24s ease; }
+
 table.stats { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.stats th {
   text-align: left;

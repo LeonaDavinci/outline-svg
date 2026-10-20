@@ -558,12 +558,55 @@
     ];
     fillStats('statsIn', left);
     fillStats('statsOut', right);
+    // 行数变了，重新按「一半」夹一次高度
+    collapseRefreshers.forEach(function (fn) { fn(); });
   }
 
   function fillStats(id, rows) {
     el(id).innerHTML = rows.map(function (r) {
       return '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>';
     }).join('');
+  }
+
+  /* ---------------- 统计卡折叠 ----------------
+   * 每张统计卡默认只显示前一半行（左 5 行露 3、右 8 行露 4），
+   * 点标题右侧的胶囊按钮展开/收起。行高是按内容量的，与视口无关，
+   * 所以不需要监听 resize；但每次重新渲染后必须重算一次。 */
+  var collapseRefreshers = [];
+
+  function bindCollapse(bodyId, btnId, labelId) {
+    var body = el(bodyId), btn = el(btnId), label = el(labelId);
+    var st = { collapsed: true, visible: 1 };
+
+    function apply() {
+      var trs = body.getElementsByTagName ? body.getElementsByTagName('tr') : [];
+      var n = trs.length;
+      st.visible = Math.max(1, Math.round(n / 2));
+      var rowH = (n && trs[0] && trs[0].offsetHeight) || 0;
+
+      if (st.collapsed) {
+        body.classList.add('is-collapsed');
+        body.style.maxHeight = (rowH * st.visible + 1) + 'px';
+        btn.setAttribute('aria-expanded', 'false');
+        label.textContent = n > st.visible ? '展开 ' + (n - st.visible) + ' 项' : '展开';
+      } else {
+        body.classList.remove('is-collapsed');
+        // 先落到实测高度让过渡有终点，动画结束后再放开到 auto
+        body.style.maxHeight = (body.scrollHeight || 0) > 0 ? body.scrollHeight + 'px' : 'none';
+        btn.setAttribute('aria-expanded', 'true');
+        label.textContent = '收起';
+        setTimeout(function () {
+          if (!st.collapsed) body.style.maxHeight = 'none';
+        }, 260);
+      }
+    }
+
+    btn.addEventListener('click', function () {
+      st.collapsed = !st.collapsed;
+      apply();
+    });
+    apply();
+    collapseRefreshers.push(apply);
   }
 
   /* ---------------- 滑块联动显示 ---------------- */
@@ -651,6 +694,8 @@
       var ta = el('svgCode');
       ta.style.display = ta.style.display === 'block' ? 'none' : 'block';
     });
+    bindCollapse('statsInBody', 'toggleIn', 'ctLabelIn');
+    bindCollapse('statsOutBody', 'toggleOut', 'ctLabelOut');
     el('resetBtn').addEventListener('click', resetParams);
     el('sampleBtn').addEventListener('click', loadSampleImage);
     el('testImgBtn').addEventListener('click', loadTestImage);

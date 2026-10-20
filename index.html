@@ -178,12 +178,32 @@
 
     <div class="stats-split">
       <div class="card">
-        <h2>输入分析</h2>
-        <table class="stats" id="statsIn"><tr><th>状态</th><td>等待运行</td></tr></table>
+        <h2>输入分析
+          <button class="collapse-toggle" id="toggleIn" type="button" aria-expanded="false" aria-controls="statsInBody">
+            <span class="ct-label" id="ctLabelIn">展开</span>
+            <svg class="ct-chev" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </h2>
+        <div class="stats-body" id="statsInBody">
+          <table class="stats" id="statsIn"><tr><th>状态</th><td>等待运行</td></tr></table>
+        </div>
       </div>
       <div class="card">
-        <h2>焊接与输出</h2>
-        <table class="stats" id="statsOut"><tr><th>状态</th><td>等待运行</td></tr></table>
+        <h2>焊接与输出
+          <button class="collapse-toggle" id="toggleOut" type="button" aria-expanded="false" aria-controls="statsOutBody">
+            <span class="ct-label" id="ctLabelOut">展开</span>
+            <svg class="ct-chev" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </h2>
+        <div class="stats-body" id="statsOutBody">
+          <table class="stats" id="statsOut"><tr><th>状态</th><td>等待运行</td></tr></table>
+        </div>
       </div>
     </div>
 
