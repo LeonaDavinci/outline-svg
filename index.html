@@ -17,7 +17,6 @@
     <img class="logo" src="assets/logo.svg" alt="线稿矢量化">
     <h1>线稿矢量化</h1>
   </div>
-  <p class="sub">均匀线宽线稿 → 中心线 → 线状 SVG。线宽自动估计，剪枝 / 焊接 / 简化全部按 W 自适应。</p>
 </header>
 
 <main class="layout">
@@ -119,9 +118,7 @@
           <option value="weld">焊接（切分并连续）</option>
           <option value="off">不处理</option>
         </select>
-      </div>
-      <div class="row check">
-        <label><input type="checkbox" id="facing"> 只焊接朝向一致的端点</label>
+        <label class="inline-check"><input type="checkbox" id="facing"> 只焊接朝向一致的端点</label>
       </div>
       <div class="row">
         <button id="runBtn2" class="primary" disabled>提取骨架并矢量化</button>
