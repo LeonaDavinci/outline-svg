@@ -211,7 +211,7 @@ button.primary:hover:not(:disabled) { background: var(--brand-2); border-color: 
 button.ghost { background: #f7fafd; }
 
 /* 合并后的动作按钮行：等宽并排，省高度 */
-.row.actions { gap: 8px; margin: 10px 0 2px; }
+.row.actions { gap: 6px; margin: 10px 0 2px; }
 .row.actions > button { flex: 1 1 0; min-width: 0; }
 .svg-actions { margin-top: 10px; }
 

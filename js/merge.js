@@ -6,8 +6,10 @@
  *      - 度为 2 的节点：无条件并成一条（保留拐角）
  *      - 度 >= 3 的节点（交叉/T 型）：按「方向连续性」两两配对，
  *        最接近直线的两条边并成一条 —— 消除交叉处的断点与硬折
- *   B. 缺口焊接：两个悬空端点距离 <= k·W 且互相朝向时接上
+ *   B. 缺口焊接：两个悬空端点距离 <= k·W 时接上；朝向不匹配但贴得很近的
+ *      （交叉处被切开的分支）作为低优先级兜底，同样接回
  *   C. T 型焊接：端点贴到别的线段上
+ *      - 端点贴着目标「端点」时：同一交汇点的两条分支，直接对接成一条
  *      - weld：切分被贴的线，与更顺的一侧接成连续路径（真正焊死）
  *      - snap：只把端点吸附到投影点（几何零损失，路径数不膨胀）
  *   D. 去重 + 短段过滤
@@ -178,28 +180,38 @@
       if (ends.length < 2) return;
 
       var cands = [];
+      var fallbacks = [];
       for (var i = 0; i < ends.length; i++) {
         for (var j = i + 1; j < ends.length; j++) {
           var A = ends[i], B = ends[j];
           var d = Geom.dist(A.pt, B.pt);
           if (d > maxGap || d < 1e-6) continue;
           var score = d;
+          var faceOk = true;
           if (facing) {
             var ux = (B.pt.x - A.pt.x) / d, uy = (B.pt.y - A.pt.y) / d;
             var fa = A.dir.x * ux + A.dir.y * uy;         // A 是否朝 B
             var fb = -(B.dir.x * ux + B.dir.y * uy);      // B 是否朝 A
-            if (fa < 0.1 || fb < 0.1) continue;
-            score = d * (1.5 - 0.5 * Math.min(fa, fb));
+            if (fa < 0.1 || fb < 0.1) {
+              // 切线互相背离：交叉/交汇点被切开的两条分支，端点各自离开交点，
+              // 但本来就该在这里接回。距离很近时作为兜底候选，
+              // 优先级低于所有朝向匹配的配对（score 加大偏移排到后面）。
+              faceOk = false;
+            } else {
+              score = d * (1.5 - 0.5 * Math.min(fa, fb));
+            }
           }
-          cands.push({ i: i, j: j, score: score });
+          if (faceOk) cands.push({ i: i, j: j, score: score });
+          else fallbacks.push({ i: i, j: j, score: 1000 + d });
         }
       }
-      if (!cands.length) return;
-      cands.sort(function (p, q) { return p.score - q.score; });
+      var all = cands.concat(fallbacks);
+      if (!all.length) return;
+      all.sort(function (p, q) { return p.score - q.score; });
 
       var ok = false;
-      for (var k = 0; k < cands.length; k++) {
-        if (weldTwo(paths, ends[cands[k].i], ends[cands[k].j])) { ok = true; break; }
+      for (var k = 0; k < all.length; k++) {
+        if (weldTwo(paths, ends[all[k].i], ends[all[k].j])) { ok = true; break; }
       }
       if (!ok) return;
     }
@@ -259,6 +271,21 @@
       if (tp2.dead) continue;
       var J = best.res.proj;
 
+      /* --- 端点贴着目标的「端点」→ 本就是同一交汇点被切开的两条分支 --- */
+      var dHead = Geom.dist(J, tp2.pts[0]);
+      var dTail = Geom.dist(J, tp2.pts[tp2.pts.length - 1]);
+      var atVertex = (best.res.t < 0.02 || best.res.t > 0.98);
+      if (atVertex && Math.min(dHead, dTail) < Math.max(1.6, width * 0.5)) {
+        // 不只是吸附：把活动端吸到目标端点后，两条路径端点对接合成一条，
+        // 交汇处才真正连续（否则永远差一小截、输出仍是两段）。
+        var tEnd = dHead <= dTail ? 'a' : 'b';
+        var tpt = tEnd === 'a' ? tp2.pts[0] : tp2.pts[tp2.pts.length - 1];
+        if (E2.end === 'a') p.pts[0] = { x: tpt.x, y: tpt.y };
+        else p.pts[p.pts.length - 1] = { x: tpt.x, y: tpt.y };
+        weldTwo(paths, { pi: E2.pi, end: E2.end }, { pi: best.ti, end: tEnd });
+        continue;
+      }
+
       /* --- snap：只吸附端点，不切分主线 --- */
       if (mode === 'snap') {
         if (E2.end === 'a') { p.pts[0] = { x: J.x, y: J.y }; p.a = ATTACHED; }
@@ -270,16 +297,6 @@
       var tpts = tp2.pts;
       var kk = Math.min(best.k, tpts.length - 2);
       if (kk < 0) continue;
-
-      // 投影落在目标「顶点」附近且端点已经贴着目标 → 本就是同一个交汇点，
-      // 直接吸附，不再切分（否则会从目标另一头接回去，路径来回折返）
-      var atVertex = (best.res.t < 0.02 || best.res.t > 0.98);
-      var dEnd = Math.min(Geom.dist(J, tpts[0]), Geom.dist(J, tpts[tpts.length - 1]));
-      if (atVertex && dEnd < Math.max(1.6, width * 0.5)) {
-        if (E2.end === 'a') { p.pts[0] = { x: J.x, y: J.y }; p.a = ATTACHED; }
-        else { p.pts[p.pts.length - 1] = { x: J.x, y: J.y }; p.b = ATTACHED; }
-        continue;
-      }
 
       var left = tpts.slice(0, kk + 1).concat([{ x: J.x, y: J.y }]);
       var right = [{ x: J.x, y: J.y }].concat(tpts.slice(kk + 1));
