@@ -163,7 +163,8 @@ body.dragging::after {
 }
 .badge::after { display: none; }
 
-.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 2px; }
+.row.check { margin-top: 0; margin-bottom: 0; }
 .row.check label, .inline-check { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-left: auto; }
 label { font-size: 13px; color: var(--ink-2); }
 label b { color: var(--ink); font-variant-numeric: tabular-nums; }
