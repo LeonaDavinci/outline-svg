@@ -223,15 +223,25 @@ button.ghost { background: #f7fafd; }
 }
 
 /* 统计表 */
+/* 统计：按主题拆成左右两张卡，避免单列过高 */
+.stats-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .stats-split { grid-template-columns: 1fr; }
+}
+
 table.stats { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.stats th {
   text-align: left;
   font-weight: 500;
   color: var(--ink-2);
-  padding: 5px 10px 5px 0;
+  padding: 5px 8px 5px 0;
   white-space: nowrap;
   vertical-align: top;
-  width: 150px;
+  width: 122px;
 }
 table.stats td {
   padding: 5px 0;

@@ -535,12 +535,16 @@
   /* ---------------- 统计信息 ---------------- */
   function renderStats(sk, welded, out, eps, strokeW, tA, tB, tC) {
     var ws = sk.widthStats;
-    var rows = [
+    // 左卡：输入分析（这张图被看成了什么）
+    var left = [
       ['二值化阈值', sk.threshold.toFixed(0) + (sk.threshold === sk.autoThreshold ? '（Otsu 自动）' : '（手动）') + (sk.inverted ? '，已反相' : '')],
       ['估计线宽 W', ws.width.toFixed(2) + ' px' + (sk.widthAuto ? '（自动）' : '（手动）')],
       ['线宽分布 p10–p90', ws.p10.toFixed(2) + ' – ' + ws.p90.toFixed(2) + ' px' + (ws.uniform ? '，均匀' : '，<b>不均匀</b>')],
       ['骨架像素', sk.centerCount + ' px'],
-      ['拓扑节点 / 边', sk.graph.nodes.length + ' 个 / ' + welded.stats.input + ' 条'],
+      ['拓扑节点 / 边', sk.graph.nodes.length + ' 个 / ' + welded.stats.input + ' 条']
+    ];
+    // 右卡：焊接与输出（线段是怎么被接起来、最终交付什么）
+    var right = [
       ['过节点合并后', welded.stats.afterJoin + ' 条'],
       ['缺口焊接后', welded.stats.afterBridge + ' 条'],
       ['T 型焊接后', welded.stats.afterAttach + ' 条'],
@@ -552,7 +556,12 @@
         ' · 骨架 ' + sk.timing.skel.toFixed(0) + ' · 追踪 ' + sk.timing.trace.toFixed(0) +
         ' · 焊接 ' + tB.toFixed(0) + ' · 输出 ' + tC.toFixed(0) + ' ms']
     ];
-    el('stats').innerHTML = rows.map(function (r) {
+    fillStats('statsIn', left);
+    fillStats('statsOut', right);
+  }
+
+  function fillStats(id, rows) {
+    el(id).innerHTML = rows.map(function (r) {
       return '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>';
     }).join('');
   }
